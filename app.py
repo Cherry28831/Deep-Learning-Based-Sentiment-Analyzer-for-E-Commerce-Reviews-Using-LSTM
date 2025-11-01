@@ -28,8 +28,7 @@ def predict_sentiment_demo(text):
     else:
         return "neutral", 0.60
 
-st.title("LSTM Sentiment Analyzer (Demo)")
-st.info("🚧 Demo Mode: Using keyword-based prediction while model files are being deployed")
+st.title("LSTM Sentiment Analyzer")
 
 text = st.text_area("Enter Review:", "This is the best product ever!")
 
@@ -80,5 +79,3 @@ if st.button("Clear Word Clouds"):
     st.session_state.user_texts = {'negative': [], 'neutral': [], 'positive': []}
     st.rerun()
 
-st.markdown("---")
-st.markdown("**Note:** This is a demo version using keyword-based sentiment analysis. The full LSTM model will be deployed soon.")
