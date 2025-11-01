@@ -44,37 +44,25 @@ def load_all():
     import joblib
     import os
     
-    # Try different possible paths
-    model_paths = [
-        "models/lstm_sentiment.h5",
-        "lstm_sentiment.h5",
-        "./models/lstm_sentiment.h5"
-    ]
+    # Debug: Show current directory and files
+    st.write("Current directory:", os.getcwd())
+    st.write("Files in current directory:", os.listdir("."))
     
-    tokenizer_paths = [
-        "models/tokenizer.pkl",
-        "tokenizer.pkl", 
-        "./models/tokenizer.pkl"
-    ]
-    
-    model = None
-    tokenizer = None
-    
-    for path in model_paths:
-        if os.path.exists(path):
-            model = load_model(path)
-            break
-    
-    for path in tokenizer_paths:
-        if os.path.exists(path):
-            tokenizer = joblib.load(path)
-            break
-            
-    if model is None or tokenizer is None:
-        st.error("Model files not found. Please check the deployment.")
+    if os.path.exists("models"):
+        st.write("Files in models directory:", os.listdir("models"))
+    else:
+        st.error("Models directory not found!")
+        st.write("Available directories:", [d for d in os.listdir(".") if os.path.isdir(d)])
         st.stop()
-        
-    return model, tokenizer
+    
+    try:
+        model = load_model("models/lstm_sentiment.h5")
+        tokenizer = joblib.load("models/tokenizer.pkl")
+        st.success("Models loaded successfully!")
+        return model, tokenizer
+    except Exception as e:
+        st.error(f"Error loading models: {str(e)}")
+        st.stop()
 
 
 model, tokenizer = load_all()
