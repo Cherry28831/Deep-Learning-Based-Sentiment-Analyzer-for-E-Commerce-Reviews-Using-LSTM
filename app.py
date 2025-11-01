@@ -5,20 +5,16 @@ import re
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# Simple stopwords list
 stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'}
 
 def preprocess(text):
-    # Simple preprocessing without NLTK
     text = re.sub(r"[^a-zA-Z\s]", "", str(text).lower())
     tokens = text.split()
     tokens = [t for t in tokens if t not in stop_words and len(t) > 2]
     return " ".join(tokens)
 
 def predict_sentiment_demo(text):
-    """Demo sentiment prediction using simple keyword matching"""
     processed = preprocess(text)
-    
     positive_words = ['good', 'great', 'excellent', 'amazing', 'love', 'best', 'awesome', 'fantastic', 'wonderful', 'perfect']
     negative_words = ['bad', 'terrible', 'awful', 'hate', 'worst', 'horrible', 'disappointing', 'poor', 'trash', 'useless']
     
@@ -37,15 +33,12 @@ st.info("🚧 Demo Mode: Using keyword-based prediction while model files are be
 
 text = st.text_area("Enter Review:", "This is the best product ever!")
 
-# Store user inputs for word cloud
 if 'user_texts' not in st.session_state:
     st.session_state.user_texts = {'negative': [], 'neutral': [], 'positive': []}
 
 if st.button("Analyze"):
     label, conf = predict_sentiment_demo(text)
     st.success(f"Sentiment: **{label}** (Confidence: {conf:.2f})")
-    
-    # Add to session state for word cloud
     processed_text = preprocess(text)
     st.session_state.user_texts[label].append(processed_text)
 
@@ -57,7 +50,6 @@ if uploaded:
         label, conf = predict_sentiment_demo(row_text)
         results.append({"Text": row_text, "Sentiment": label, "Confidence": f"{conf:.2f}"})
         
-        # Add to word cloud data
         processed_text = preprocess(row_text)
         st.session_state.user_texts[label].append(processed_text)
     
@@ -65,7 +57,6 @@ if uploaded:
     st.dataframe(results_df)
     st.success(f"Processed {len(results)} reviews and added to word clouds!")
 
-# Generate word clouds from user inputs
 st.subheader("Word Clouds from Your Inputs")
 
 for sentiment in ['negative', 'neutral', 'positive']:
