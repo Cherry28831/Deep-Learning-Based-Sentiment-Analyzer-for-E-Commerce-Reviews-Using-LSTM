@@ -42,8 +42,38 @@ def predict_sentiment(text, tokenizer, model, max_len=100):
 @st.cache_resource
 def load_all():
     import joblib
-    model = load_model("models/lstm_sentiment.h5")
-    tokenizer = joblib.load("models/tokenizer.pkl")
+    import os
+    
+    # Try different possible paths
+    model_paths = [
+        "models/lstm_sentiment.h5",
+        "lstm_sentiment.h5",
+        "./models/lstm_sentiment.h5"
+    ]
+    
+    tokenizer_paths = [
+        "models/tokenizer.pkl",
+        "tokenizer.pkl", 
+        "./models/tokenizer.pkl"
+    ]
+    
+    model = None
+    tokenizer = None
+    
+    for path in model_paths:
+        if os.path.exists(path):
+            model = load_model(path)
+            break
+    
+    for path in tokenizer_paths:
+        if os.path.exists(path):
+            tokenizer = joblib.load(path)
+            break
+            
+    if model is None or tokenizer is None:
+        st.error("Model files not found. Please check the deployment.")
+        st.stop()
+        
     return model, tokenizer
 
 
