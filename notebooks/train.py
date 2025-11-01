@@ -16,6 +16,26 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
 import joblib
+import sys
+from datetime import datetime
+
+# Setup logging to capture all output
+class Logger:
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.log = open(filename, "w")
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    
+    def flush(self):
+        pass
+
+sys.stdout = Logger("training_log.txt")
+print(f"Training started at: {datetime.now()}")
+print("=" * 50)
 
 # Setup NLTK
 nltk.download(["punkt", "punkt_tab", "stopwords", "wordnet"], quiet=True)
@@ -38,8 +58,15 @@ df = df[["Text", "Score"]].dropna()
 df["Sentiment"] = pd.cut(df["Score"], bins=[0, 2.5, 3.5, 5], labels=["negative", "neutral", "positive"])
 df["Sentiment"] = df["Sentiment"].astype("category").cat.codes  # 0=neg, 1=neu, 2=pos
 
-print(f"Dataset shape: {df.shape}")
-print("Sentiment distribution:")
+print(f"Original dataset shape: {df.shape}")
+print("Original sentiment distribution:")
+print(df["Sentiment"].value_counts())
+
+# Sample 50% from each sentiment class
+df = df.groupby('Sentiment').apply(lambda x: x.sample(frac=0.5, random_state=42)).reset_index(drop=True)
+
+print(f"Balanced dataset shape: {df.shape}")
+print("Balanced sentiment distribution:")
 print(df["Sentiment"].value_counts())
 
 # Preprocess text
@@ -85,7 +112,7 @@ model.summary()
 print("Training model...")
 history = model.fit(
     X_train, y_train,
-    epochs=10,
+    epochs=15,
     batch_size=16,
     validation_data=(X_val, y_val),
     verbose=1
