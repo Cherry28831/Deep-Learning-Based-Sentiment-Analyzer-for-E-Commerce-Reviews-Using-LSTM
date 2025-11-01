@@ -6,6 +6,9 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
@@ -14,32 +17,57 @@ nltk.download(["punkt", "stopwords", "wordnet"], quiet=True)
 stop_words = set(stopwords.words("english"))
 lemmatizer = WordNetLemmatizer()
 
+
 def preprocess(text):
     text = re.sub(r"[^a-zA-Z\s]", "", str(text).lower())
     tokens = word_tokenize(text)
-    tokens = [lemmatizer.lemmatize(t) for t in tokens if t not in stop_words and len(t) > 2]
+    tokens = [
+        lemmatizer.lemmatize(t) for t in tokens if t not in stop_words and len(t) > 2
+    ]
     return " ".join(tokens)
 
-def predict_sentiment_demo(text):
-    """Demo sentiment prediction using simple keyword matching"""
-    processed = preprocess(text)
+
+def predict_sentiment(text, tokenizer, model, max_len=100):
+    proc = preprocess(text)
+    seq = tokenizer.texts_to_sequences([proc])
+    pad = pad_sequences(seq, maxlen=max_len, padding='post')
+    pred = model.predict(pad, verbose=0)[0]
+    label = np.argmax(pred)
+    confidence = np.max(pred)
+    sentiments = ["negative", "neutral", "positive"]
+    return sentiments[label], confidence
+
+
+# Load model and tokenizer
+@st.cache_resource
+def load_all():
+    import joblib
+    import os
     
-    positive_words = ['good', 'great', 'excellent', 'amazing', 'love', 'best', 'awesome', 'fantastic', 'wonderful', 'perfect']
-    negative_words = ['bad', 'terrible', 'awful', 'hate', 'worst', 'horrible', 'disappointing', 'poor', 'trash', 'useless']
+    # Debug: Show current directory and files
+    st.write("Current directory:", os.getcwd())
+    st.write("Files in current directory:", os.listdir("."))
     
-    pos_score = sum(1 for word in positive_words if word in processed)
-    neg_score = sum(1 for word in negative_words if word in processed)
-    
-    if pos_score > neg_score:
-        return "positive", 0.75 + (pos_score * 0.05)
-    elif neg_score > pos_score:
-        return "negative", 0.75 + (neg_score * 0.05)
+    if os.path.exists("models"):
+        st.write("Files in models directory:", os.listdir("models"))
     else:
-        return "neutral", 0.60
+        st.error("Models directory not found!")
+        st.write("Available directories:", [d for d in os.listdir(".") if os.path.isdir(d)])
+        st.stop()
+    
+    try:
+        model = load_model("models/lstm_sentiment.h5")
+        tokenizer = joblib.load("models/tokenizer.pkl")
+        st.success("Models loaded successfully!")
+        return model, tokenizer
+    except Exception as e:
+        st.error(f"Error loading models: {str(e)}")
+        st.stop()
 
-st.title("LSTM Sentiment Analyzer (Demo)")
-st.info("🚧 Demo Mode: Using keyword-based prediction while model files are being deployed")
 
+model, tokenizer = load_all()
+
+st.title("LSTM Sentiment Analyzer")
 text = st.text_area("Enter Review:", "This is the best product ever!")
 
 # Store user inputs for word cloud
@@ -47,7 +75,7 @@ if 'user_texts' not in st.session_state:
     st.session_state.user_texts = {'negative': [], 'neutral': [], 'positive': []}
 
 if st.button("Analyze"):
-    label, conf = predict_sentiment_demo(text)
+    label, conf = predict_sentiment(text, tokenizer, model)
     st.success(f"Sentiment: **{label}** (Confidence: {conf:.2f})")
     
     # Add to session state for word cloud
@@ -57,14 +85,18 @@ if st.button("Analyze"):
 uploaded = st.file_uploader("Upload CSV for Batch")
 if uploaded:
     df_up = pd.read_csv(uploaded)
+    df_up["Processed"] = df_up["Text"].apply(preprocess)  # Assume 'Text' col
     results = []
-    for i, row_text in enumerate(df_up["Text"]):
-        label, conf = predict_sentiment_demo(row_text)
-        results.append({"Text": row_text, "Sentiment": label, "Confidence": f"{conf:.2f}"})
+    for i, proc in enumerate(df_up["Processed"]):
+        seq = tokenizer.texts_to_sequences([proc])
+        pad = pad_sequences(seq, maxlen=100, padding='post')
+        pred = model.predict(pad, verbose=0)[0]
+        label_idx = np.argmax(pred)
+        label = ["negative", "neutral", "positive"][label_idx]
+        results.append({"Text": df_up["Text"].iloc[i], "Sentiment": label})
         
         # Add to word cloud data
-        processed_text = preprocess(row_text)
-        st.session_state.user_texts[label].append(processed_text)
+        st.session_state.user_texts[label].append(proc)
     
     results_df = pd.DataFrame(results)
     st.dataframe(results_df)
@@ -93,6 +125,3 @@ for sentiment in ['negative', 'neutral', 'positive']:
 if st.button("Clear Word Clouds"):
     st.session_state.user_texts = {'negative': [], 'neutral': [], 'positive': []}
     st.rerun()
-
-st.markdown("---")
-st.markdown("**Note:** This is a demo version using keyword-based sentiment analysis. The full LSTM model will be deployed soon.")
