@@ -2,22 +2,17 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# Setup (run once)
-nltk.download(["punkt", "stopwords", "wordnet"], quiet=True)
-stop_words = set(stopwords.words("english"))
-lemmatizer = WordNetLemmatizer()
+# Simple stopwords list
+stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'}
 
 def preprocess(text):
+    # Simple preprocessing without NLTK
     text = re.sub(r"[^a-zA-Z\s]", "", str(text).lower())
-    tokens = word_tokenize(text)
-    tokens = [lemmatizer.lemmatize(t) for t in tokens if t not in stop_words and len(t) > 2]
+    tokens = text.split()
+    tokens = [t for t in tokens if t not in stop_words and len(t) > 2]
     return " ".join(tokens)
 
 def predict_sentiment_demo(text):
